@@ -1,0 +1,106 @@
+
+{
+  "version": 2,
+  "name": "ai-figurine-generator",
+  "description": "AI手办生成器 - 基于豆包API的智能手办创作平台",
+  
+  "builds": [
+    {
+      "src": "server.js",
+      "use": "@vercel/node",
+      "config": {
+        "maxLambdaSize": "50mb"
+      }
+    },
+    {
+      "src": "public/**",
+      "use": "@vercel/static"
+    }
+  ],
+  
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "server.js"
+    },
+    {
+      "src": "/health",
+      "dest": "server.js"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "public/$1"
+    }
+  ],
+  
+  "env": {
+    "DOUBAO_API_KEY": "@doubao_api_key",
+    "DOUBAO_MODEL": "@doubao_model",
+    "DOUBAO_API_URL": "@doubao_api_url",
+    "NODE_ENV": "production",
+    "MAX_FILE_SIZE": "50",
+    "UPLOAD_DIR": "uploads"
+  },
+  
+  "functions": {
+    "server.js": {
+      "maxDuration": 30
+    }
+  },
+  
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
+        },
+        {
+          "key": "Access-Control-Allow-Methods",
+          "value": "GET, POST, PUT, DELETE, OPTIONS"
+        },
+        {
+          "key": "Access-Control-Allow-Headers",
+          "value": "Content-Type, Authorization"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "no-cache"
+        }
+      ]
+    },
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "X-XSS-Protection",
+          "value": "1; mode=block"
+        }
+      ]
+    }
+  ],
+  
+  "redirects": [
+    {
+      "source": "/home",
+      "destination": "/",
+      "permanent": true
+    }
+  ],
+  
+  "rewrites": [
+    {
+      "source": "/api/generate",
+      "destination": "/api/generate"
+    }
+  ]
+}
