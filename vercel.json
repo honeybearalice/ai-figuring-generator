@@ -1,4 +1,3 @@
-
 {
   "version": 2,
   "builds": [
@@ -30,13 +29,5 @@
       "destination": "/",
       "permanent": true
     }
-  ],
-  "env": {
-    "DOUBAO_API_KEY": "@doubao_api_key",
-    "DOUBAO_MODEL": "@doubao_model",
-    "DOUBAO_API_URL": "@doubao_api_url",
-    "NODE_ENV": "production",
-    "MAX_FILE_SIZE": "50",
-    "UPLOAD_DIR": "uploads"
-  }
+  ]
 }
