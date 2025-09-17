@@ -287,3 +287,4 @@ process.on('SIGINT', () => {
     console.log('接收到 SIGINT 信号，正在关闭服务器...');
     process.exit(0);
 });
+module.exports = app;
