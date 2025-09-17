@@ -1,0 +1,624 @@
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI手办生成器 - 豆包驱动</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .glass-effect {
+            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .loading-spinner {
+            border: 3px solid #f3f4f6;
+            border-top: 3px solid #3b82f6;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .style-card {
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        .style-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+        .style-card.selected {
+            border: 3px solid #3b82f6;
+            background: rgba(59, 130, 246, 0.1);
+        }
+        .premium-style {
+            background: linear-gradient(45deg, #ffd700, #ffed4e);
+            color: #1f2937;
+        }
+        .result-image {
+            max-width: 100%;
+            max-height: 500px;
+            object-fit: contain;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+    </style>
+</head>
+<body class="min-h-screen gradient-bg">
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-white mb-2">🎭 AI手办生成器</h1>
+            <p class="text-xl text-white opacity-90">豆包AI驱动 - 将你的照片转换为精美的3D手办模型</p>
+        </div>
+
+        <!-- Main Content -->
+        <div class="max-w-6xl mx-auto">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- Left Panel - Controls -->
+                <div class="glass-effect rounded-xl p-6">
+                    <h2 class="text-2xl font-bold text-white mb-6">🎨 创作设置</h2>
+                    
+                    <!-- Image Upload -->
+                    <div class="mb-6">
+                        <label class="block text-white text-lg font-semibold mb-3">📸 上传照片</label>
+                        <div class="border-2 border-dashed border-white/30 rounded-lg p-6 text-center hover:border-white/50 transition-colors">
+                            <input type="file" id="imageInput" accept="image/*" class="hidden" onchange="handleImageUpload(event)">
+                            <div id="uploadArea" class="cursor-pointer" onclick="document.getElementById('imageInput').click()">
+                                <div id="uploadPrompt" class="text-white/80">
+                                    <svg class="mx-auto h-12 w-12 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                                    </svg>
+                                    <p>点击上传图片或拖拽到这里</p>
+                                    <p class="text-sm opacity-70">支持 JPG, PNG, GIF 格式</p>
+                                </div>
+                                <div id="imagePreview" class="hidden">
+                                    <img id="previewImg" class="max-w-full max-h-48 mx-auto rounded-lg shadow-lg">
+                                    <p class="text-white/80 mt-2">点击重新选择图片</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Style Selection -->
+                    <div class="mb-6">
+                        <label class="block text-white text-lg font-semibold mb-3">🎭 手办风格</label>
+                        <div class="grid grid-cols-2 gap-3">
+                            <!-- Premium Custom Style -->
+                            <div class="style-card premium-style rounded-lg p-3 text-center col-span-2 selected" data-style="custom" onclick="selectStyle('custom')">
+                                <div class="text-2xl mb-1">⭐</div>
+                                <div class="font-bold">真人定制手办</div>
+                                <div class="text-xs opacity-80">高度还原真实照片</div>
+                            </div>
+                            
+                            <div class="style-card bg-white/20 rounded-lg p-3 text-center" data-style="realistic" onclick="selectStyle('realistic')">
+                                <div class="text-2xl mb-1">👤</div>
+                                <div class="text-white font-medium">真人风格</div>
+                            </div>
+                            <div class="style-card bg-white/20 rounded-lg p-3 text-center" data-style="cartoon" onclick="selectStyle('cartoon')">
+                                <div class="text-2xl mb-1">🎪</div>
+                                <div class="text-white font-medium">卡通风格</div>
+                            </div>
+                            <div class="style-card bg-white/20 rounded-lg p-3 text-center" data-style="anime" onclick="selectStyle('anime')">
+                                <div class="text-2xl mb-1">🌸</div>
+                                <div class="text-white font-medium">动漫风格</div>
+                            </div>
+                            <div class="style-card bg-white/20 rounded-lg p-3 text-center" data-style="ancient" onclick="selectStyle('ancient')">
+                                <div class="text-2xl mb-1">🏛️</div>
+                                <div class="text-white font-medium">古风风格</div>
+                            </div>
+                            <div class="style-card bg-white/20 rounded-lg p-3 text-center" data-style="modern" onclick="selectStyle('modern')">
+                                <div class="text-2xl mb-1">🏙️</div>
+                                <div class="text-white font-medium">现代风格</div>
+                            </div>
+                            <div class="style-card bg-white/20 rounded-lg p-3 text-center" data-style="cyberpunk" onclick="selectStyle('cyberpunk')">
+                                <div class="text-2xl mb-1">🤖</div>
+                                <div class="text-white font-medium">赛博朋克</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Custom Figurine Options -->
+                    <div id="customOptions" class="mb-6">
+                        <label class="block text-white text-lg font-semibold mb-3">🎯 定制选项</label>
+                        <div class="space-y-3">
+                            <div class="bg-white/10 rounded-lg p-3">
+                                <label class="flex items-center text-white">
+                                    <input type="checkbox" id="keepPets" checked class="mr-2 rounded">
+                                    包含宠物（如果照片中有）
+                                </label>
+                            </div>
+                            <div class="bg-white/10 rounded-lg p-3">
+                                <label class="flex items-center text-white">
+                                    <input type="checkbox" id="keepAccessories" checked class="mr-2 rounded">
+                                    保留所有配饰（背包、帽子等）
+                                </label>
+                            </div>
+                            <div class="bg-white/10 rounded-lg p-3">
+                                <label class="flex items-center text-white">
+                                    <input type="checkbox" id="sceneBase" checked class="mr-2 rounded">
+                                    情景式底座设计
+                                </label>
+                            </div>
+                            <div class="bg-white/10 rounded-lg p-3">
+                                <label class="block text-white mb-2">人物比例</label>
+                                <select id="proportionSelect" class="w-full bg-white/20 text-white rounded p-2 border border-white/30">
+                                    <option value="q-realistic">Q版写实（推荐）</option>
+                                    <option value="realistic">完全写实</option>
+                                    <option value="chibi">超Q萌版</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Clothing Options -->
+                    <div class="mb-6">
+                        <label class="block text-white text-lg font-semibold mb-3">👗 服装选择</label>
+                        <select id="clothingSelect" class="w-full bg-white/20 text-white rounded-lg p-3 border border-white/30 focus:border-white/50 focus:outline-none">
+                            <option value="">保持原装</option>
+                            <option value="casual">休闲装</option>
+                            <option value="formal">正装</option>
+                            <option value="traditional">传统服装</option>
+                            <option value="fantasy">奇幻服装</option>
+                            <option value="uniform">制服</option>
+                            <option value="cosplay">Cosplay服装</option>
+                            <option value="outdoor">户外运动装</option>
+                            <option value="beach">海滩装</option>
+                        </select>
+                    </div>
+
+                    <!-- Base Options -->
+                    <div class="mb-6">
+                        <label class="block text-white text-lg font-semibold mb-3">⭕ 底座样式</label>
+                        <select id="baseSelect" class="w-full bg-white/20 text-white rounded-lg p-3 border border-white/30 focus:border-white/50 focus:outline-none">
+                            <option value="transparent">透明圆形底座</option>
+                            <option value="scene">情景底座（根据照片背景）</option>
+                            <option value="wooden">木质底座</option>
+                            <option value="marble">大理石底座</option>
+                            <option value="metal">金属底座</option>
+                            <option value="crystal">水晶底座</option>
+                        </select>
+                    </div>
+
+                    <!-- Scene Options -->
+                    <div class="mb-6">
+                        <label class="block text-white text-lg font-semibold mb-3">🖥️ 场景设置</label>
+                        <div class="space-y-2">
+                            <label class="flex items-center text-white">
+                                <input type="checkbox" id="showScreen" checked class="mr-2 rounded">
+                                显示电脑屏幕上的建模过程
+                            </label>
+                            <label class="flex items-center text-white">
+                                <input type="checkbox" id="showBox" checked class="mr-2 rounded">
+                                显示BANDAI风格包装盒
+                            </label>
+                            <label class="flex items-center text-white">
+                                <input type="checkbox" id="showDesk" checked class="mr-2 rounded">
+                                电脑桌场景
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Generate Button -->
+                    <button id="generateBtn" onclick="generateFigurine()" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-4 px-6 rounded-lg transition-colors text-lg shadow-lg">
+                        <span id="generateText">🎨 生成手办（豆包AI）</span>
+                        <div id="generateLoading" class="hidden flex items-center justify-center">
+                            <div class="loading-spinner mr-3"></div>
+                            豆包AI生成中...
+                        </div>
+                    </button>
+                </div>
+
+                <!-- Right Panel - Results -->
+                <div class="glass-effect rounded-xl p-6">
+                    <h2 class="text-2xl font-bold text-white mb-6">🖼️ 生成结果</h2>
+                    
+                    <div id="resultArea" class="text-center">
+                        <div id="placeholderContent" class="text-white/60 py-12">
+                            <svg class="mx-auto h-24 w-24 mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 002 2z"></path>
+                            </svg>
+                            <p class="text-xl">上传照片并选择风格开始创作</p>
+                            <p class="text-sm opacity-70 mt-2">你的AI手办将在这里显示</p>
+                        </div>
+                        
+                        <div id="resultContent" class="hidden">
+                            <div id="resultImage" class="mb-4">
+                                <!-- Generated image will be displayed here -->
+                            </div>
+                            
+                            <div class="flex gap-3 justify-center mt-4 flex-wrap">
+                                <button onclick="downloadImage()" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition-colors">
+                                    📥 下载图片
+                                </button>
+                                <button onclick="shareImage()" class="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg transition-colors">
+                                    🔗 分享
+                                </button>
+                                <button onclick="generateAnother()" class="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg transition-colors">
+                                    🔄 重新生成
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Generated Prompt Display -->
+            <div class="mt-8 glass-effect rounded-xl p-6">
+                <h3 class="text-xl font-bold text-white mb-3">🤖 AI提示词预览</h3>
+                <div id="promptPreview" class="bg-black/30 rounded-lg p-4 text-white/80 font-mono text-sm min-h-20">
+                    <em>选择风格后将显示生成的提示词...</em>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let selectedStyle = 'custom';
+        let uploadedImage = null;
+        let currentImageUrl = null;
+
+        // 豆包专用的风格模板
+        const doubaoStyleTemplates = {
+            custom: `根据上传的照片，精确还原创建一个真人定制手办模型。要求：
+1. 采用Q版写实风格，保持人物真实面部特征但略微可爱化
+2. 完全按照照片中的服装样式、颜色、质感进行还原
+3. 保留所有细节：发型、表情、姿态、配饰等
+4. 如果照片中有多个人物，请全部还原
+5. 手办材质应呈现专业级制作工艺，表面光滑细腻`,
+
+            realistic: "创建真实世界风格的手办模型，高度写实，保持照片人物的真实比例和特征，细节丰富",
+            
+            cartoon: "创建卡通风格的可爱手办模型，圆润造型，色彩明亮，Q版比例，保持人物识别度",
+            
+            anime: "创建日式动漫风格的精美手办模型，大眼睛，精致面部特征，动漫化处理但保持原始特色",
+            
+            ancient: "创建古风传统风格的典雅手办模型，融入古装元素，东方美学，典雅气质",
+            
+            modern: "创建现代都市风格的时尚手办模型，现代服饰搭配，都市感，时尚动感",
+            
+            cyberpunk: "创建赛博朋克风格的未来感手办模型，科技元素，霓虹效果，未来主义设计"
+        };
+
+        const clothingTemplates = {
+            '': '',
+            casual: '，更换为时尚休闲装搭配',
+            formal: '，更换为正式西装或优雅礼服',
+            traditional: '，更换为精美传统民族服装',
+            fantasy: '，更换为奇幻风格服装',
+            uniform: '，更换为精美制服',
+            cosplay: '，更换为热门动漫角色Cosplay服装',
+            outdoor: '，更换为专业户外运动装备',
+            beach: '，更换为时尚海滩休闲装'
+        };
+
+        const baseTemplates = {
+            transparent: '使用圆形透明亚克力底座',
+            scene: '使用情景式底座设计，还原照片背景的关键元素',
+            wooden: '使用精美抛光木质圆形底座',
+            marble: '使用高级大理石纹理圆形底座',
+            metal: '使用金属质感圆形底座',
+            crystal: '使用水晶透明圆形底座'
+        };
+
+        function handleImageUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+                // 检查文件大小
+                if (file.size > 10 * 1024 * 1024) { // 10MB
+                    alert('图片文件过大，请选择小于10MB的图片');
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    uploadedImage = e.target.result;
+                    const previewImg = document.getElementById('previewImg');
+                    previewImg.src = uploadedImage;
+                    
+                    document.getElementById('uploadPrompt').classList.add('hidden');
+                    document.getElementById('imagePreview').classList.remove('hidden');
+                    
+                    updatePromptPreview();
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function selectStyle(style) {
+            selectedStyle = style;
+            
+            // Update visual selection
+            document.querySelectorAll('.style-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            document.querySelector(`.style-card[data-style="${style}"]`).classList.add('selected');
+            
+            // Show/hide custom options
+            const customOptions = document.getElementById('customOptions');
+            if (style === 'custom') {
+                customOptions.classList.remove('hidden');
+            } else {
+                customOptions.classList.add('hidden');
+            }
+            
+            updatePromptPreview();
+        }
+
+        function updatePromptPreview() {
+            const clothing = document.getElementById('clothingSelect').value;
+            const base = document.getElementById('baseSelect').value;
+            const showScreen = document.getElementById('showScreen').checked;
+            const showBox = document.getElementById('showBox').checked;
+            const showDesk = document.getElementById('showDesk').checked;
+
+            let prompt = doubaoStyleTemplates[selectedStyle];
+            
+            // Custom style specific additions
+            if (selectedStyle === 'custom') {
+                const keepPets = document.getElementById('keepPets')?.checked;
+                const keepAccessories = document.getElementById('keepAccessories')?.checked;
+                const sceneBase = document.getElementById('sceneBase')?.checked;
+                const proportion = document.getElementById('proportionSelect')?.value;
+                
+                if (keepPets) {
+                    prompt += '\n6. 如果照片中有宠物（狗、猫等），请完全还原宠物的品种、颜色、大小和所有配饰（牵引绳、项圈等）';
+                }
+                
+                if (keepAccessories) {
+                    prompt += '\n7. 精确还原人物的所有配饰细节：背包、帽子、眼镜、首饰、手表等，包括颜色、材质、品牌标识';
+                }
+                
+                if (proportion === 'realistic') {
+                    prompt = prompt.replace('Q版写实风格', '完全写实风格，1:1真实比例');
+                } else if (proportion === 'chibi') {
+                    prompt = prompt.replace('Q版写实风格', '超Q萌化风格，头身比2:1');
+                }
+            }
+            
+            // 添加服装变更
+            prompt += clothingTemplates[clothing];
+            
+            // 添加底座设计
+            prompt += `\n\n底座设计：${baseTemplates[base]}，底座上不应有任何文字或标识。`;
+            
+            // 添加场景元素
+            if (showDesk || showScreen || showBox) {
+                prompt += '\n\n场景布置：';
+                if (showDesk) {
+                    prompt += '将整个手办放置在现代风格的电脑桌面上；';
+                }
+                if (showScreen) {
+                    prompt += '在电脑显示器屏幕上展示该手办的ZBrush 3D建模制作过程界面；';
+                }
+                if (showBox) {
+                    prompt += '在显示器旁边放置一个印有原始人物插画的BANDAI风格精美手办包装盒。';
+                }
+            }
+            
+            // 添加质量要求
+            prompt += '\n\n技术要求：专业级手办制作工艺，高质量3D渲染，柔和专业摄影光照，精细材质表现，画面比例3:4竖版构图。';
+
+            document.getElementById('promptPreview').textContent = prompt;
+        }
+
+        async function generateFigurine() {
+            if (!uploadedImage) {
+                alert('请先上传一张照片！');
+                return;
+            }
+
+            // Show loading state
+            const generateBtn = document.getElementById('generateBtn');
+            const generateText = document.getElementById('generateText');
+            const generateLoading = document.getElementById('generateLoading');
+            
+            generateBtn.disabled = true;
+            generateText.classList.add('hidden');
+            generateLoading.classList.remove('hidden');
+
+            try {
+                // Get the final prompt
+                const prompt = document.getElementById('promptPreview').textContent;
+                
+                // 准备请求数据
+                const requestData = {
+                    prompt: prompt,
+                    image: uploadedImage,
+                    style: selectedStyle,
+                    options: {
+                        keepPets: document.getElementById('keepPets')?.checked,
+                        keepAccessories: document.getElementById('keepAccessories')?.checked,
+                        sceneBase: document.getElementById('sceneBase')?.checked,
+                        proportion: document.getElementById('proportionSelect')?.value,
+                        clothing: document.getElementById('clothingSelect').value,
+                        base: document.getElementById('baseSelect').value,
+                        showScreen: document.getElementById('showScreen').checked,
+                        showBox: document.getElementById('showBox').checked,
+                        showDesk: document.getElementById('showDesk').checked
+                    }
+                };
+
+                console.log('发送生成请求...');
+                
+                // 调用后端API
+                const response = await fetch('/api/generate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(requestData)
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || `HTTP ${response.status}`);
+                }
+
+                const result = await response.json();
+                
+                if (result.success && result.imageUrl) {
+                    currentImageUrl = result.imageUrl;
+                    showResult(result.imageUrl);
+                } else {
+                    throw new Error('API返回了无效的结果');
+                }
+                
+            } catch (error) {
+                console.error('生成失败:', error);
+                alert('生成失败: ' + error.message + '\n\n请检查:\n1. 豆包API密钥是否正确配置\n2. 网络连接是否正常\n3. 后端服务是否启动');
+            } finally {
+                // Reset button state
+                generateBtn.disabled = false;
+                generateText.classList.remove('hidden');
+                generateLoading.classList.add('hidden');
+            }
+        }
+
+        function showResult(imageUrl) {
+            document.getElementById('placeholderContent').classList.add('hidden');
+            document.getElementById('resultContent').classList.remove('hidden');
+            
+            // 显示生成的图片
+            const resultImage = document.getElementById('resultImage');
+            resultImage.innerHTML = `
+                <img src="${imageUrl}" alt="生成的手办" class="result-image mx-auto">
+                <p class="text-white/80 text-sm mt-3">✨ 豆包AI生成成功！</p>
+            `;
+        }
+
+        function downloadImage() {
+            if (currentImageUrl) {
+                // 创建一个临时链接来下载图片
+                const link = document.createElement('a');
+                link.href = currentImageUrl;
+                link.download = `ai-figurine-${Date.now()}.jpg`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            } else {
+                alert('没有可下载的图片');
+            }
+        }
+
+        function shareImage() {
+            if (currentImageUrl) {
+                // 使用 Web Share API 或复制链接
+                if (navigator.share) {
+                    navigator.share({
+                        title: 'AI手办生成器',
+                        text: '看看我用AI生成的手办！',
+                        url: currentImageUrl
+                    });
+                } else {
+                    // 复制链接到剪贴板
+                    navigator.clipboard.writeText(currentImageUrl).then(() => {
+                        alert('图片链接已复制到剪贴板！');
+                    }).catch(() => {
+                        alert('分享功能需要HTTPS环境或现代浏览器支持');
+                    });
+                }
+            } else {
+                alert('没有可分享的图片');
+            }
+        }
+
+        function generateAnother() {
+            generateFigurine();
+        }
+
+        // 初始化
+        selectStyle('custom');
+        updatePromptPreview();
+
+        // 添加事件监听器
+        document.getElementById('clothingSelect').addEventListener('change', updatePromptPreview);
+        document.getElementById('baseSelect').addEventListener('change', updatePromptPreview);
+        document.getElementById('showScreen').addEventListener('change', updatePromptPreview);
+        document.getElementById('showBox').addEventListener('change', updatePromptPreview);
+        document.getElementById('showDesk').addEventListener('change', updatePromptPreview);
+        
+        // 自定义选项的事件监听器
+        ['keepPets', 'keepAccessories', 'sceneBase', 'proportionSelect'].forEach(id => {
+            const element = document.getElementById(id);
+            if (element) {
+                element.addEventListener('change', updatePromptPreview);
+            }
+        });
+
+        // 拖拽上传功能
+        const uploadArea = document.getElementById('uploadArea');
+        
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.style.backgroundColor = 'rgba(255,255,255,0.1)';
+        });
+        
+        uploadArea.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            uploadArea.style.backgroundColor = '';
+        });
+        
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.style.backgroundColor = '';
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                const file = files[0];
+                if (file.type.startsWith('image/')) {
+                    const fakeEvent = {
+                        target: { files: [file] }
+                    };
+                    handleImageUpload(fakeEvent);
+                }
+            }
+        });
+
+        // 检查API健康状态
+        fetch('/api/health')
+            .then(res => res.json())
+            .then(data => {
+                console.log('API状态:', data);
+                if (!data.hasApiKey) {
+                    console.warn('⚠️ 豆包API密钥未配置');
+                }
+            })
+            .catch(err => {
+                console.warn('⚠️ 无法连接到后端服务:', err);
+            });
+    </script>
+<script>window.parent.postMessage({ action: "ready" }, "*"); 
+ 
+window.console = new Proxy(console, {
+  get(target, prop) {
+    if (['log', 'warn', 'error'].includes(prop)) {
+      return new Proxy(target[prop], {
+        apply(fn, thisArg, args) {
+          fn.apply(thisArg, args);
+          window.parent.postMessage({ action: 'console', 
+            type: prop, 
+            args: args.map((arg) => {
+              try {
+                return JSON.stringify(arg).replace(/^["']|["']$/g, '');
+              } catch (e) {
+                return arg;
+              }
+            }) 
+          }, '*');
+        }
+      });
+    }
+    return target[prop];
+  }
+});
+</script></body>
+</html>
