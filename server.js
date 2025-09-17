@@ -1,9 +1,9 @@
 
-// server.js - 豆包API集成的完整后端
+// server.js - 豆包API集成的完整后端（Vercel兼容版）
 const express = require('express');
 const multer = require('multer');
 const path = require('path');
-const fs = require('fs');
+// 移除 fs 模块，因为不需要文件操作
 require('dotenv').config();
 
 const app = express();
@@ -25,16 +25,16 @@ app.use((req, res, next) => {
     }
 });
 
-// 创建上传目录
-const uploadDir = 'uploads';
-if (!fs.existsSync(uploadDir)) {
-    fs.mkdirSync(uploadDir);
-}
+// ❌ 移除文件系统操作 - Vercel不支持
+// const uploadDir = 'uploads';
+// if (!fs.existsSync(uploadDir)) {
+//     fs.mkdirSync(uploadDir);
+// }
 
 // 豆包API配置
-const DOUBAO_API_URL = process.env.DOUBAO_API_URL || 'https://ark.cn-beijing.volces.com/api/v3/images/generations'; // 豆包API地址
+const DOUBAO_API_URL = process.env.DOUBAO_API_URL || 'https://ark.cn-beijing.volces.com/api/v3/images/generations';
 const DOUBAO_API_KEY = process.env.DOUBAO_API_KEY;
-const DOUBAO_MODEL = process.env.DOUBAO_MODEL || 'ep-20250917182847-vj4mj'; // 从环境变量读取模型ID
+const DOUBAO_MODEL = process.env.DOUBAO_MODEL || 'ep-20250917182847-vj4mj';
 
 // 图片生成API路由
 app.post('/api/generate', async (req, res) => {
@@ -48,7 +48,7 @@ app.post('/api/generate', async (req, res) => {
 
         console.log('生成参数:', { prompt: prompt.substring(0, 100), style, options });
 
-        // 调用AI生成图片 - 使用直接的图像生成API
+        // 调用AI生成图片
         const result = await generateWithDoubaoDirect(prompt, image);
 
         console.log('生成成功，返回图片URL');
@@ -67,127 +67,9 @@ app.post('/api/generate', async (req, res) => {
     }
 });
 
-// 豆包API调用函数
-async function generateWithDoubao(prompt, image, style, options) {
-    try {
-        // 构建消息内容
-        const messages = [
-            {
-                role: "system",
-                content: "你是一个专业的AI图像生成助手，专门用于生成高质量的手办模型图片。请根据用户的描述生成对应的图像。"
-            }
-        ];
-
-        // 如果有上传的图片，添加到消息中
-        if (image) {
-            messages.push({
-                role: "user",
-                content: [
-                    {
-                        type: "text",
-                        text: `请根据这张图片和以下描述生成手办：${prompt}`
-                    },
-                    {
-                        type: "image_url",
-                        image_url: {
-                            url: image // base64格式的图片
-                        }
-                    }
-                ]
-            });
-        } else {
-            messages.push({
-                role: "user",
-                content: prompt
-            });
-        }
-
-        const requestBody = {
-            model: DOUBAO_MODEL,
-            messages: messages,
-            max_tokens: 1000,
-            temperature: 0.8,
-            // 豆包特定的图像生成参数
-            tools: [{
-                type: "function",
-                function: {
-                    name: "generate_image",
-                    description: "生成图片",
-                    parameters: {
-                        type: "object",
-                        properties: {
-                            prompt: {
-                                type: "string",
-                                description: "图片生成提示词"
-                            },
-                            size: {
-                                type: "string",
-                                description: "图片尺寸",
-                                enum: ["1024x1024", "1024x1536", "1536x1024"]
-                            },
-                            quality: {
-                                type: "string",
-                                description: "图片质量",
-                                enum: ["standard", "hd"]
-                            }
-                        },
-                        required: ["prompt"]
-                    }
-                }
-            }],
-            tool_choice: {
-                type: "function",
-                function: { name: "generate_image" }
-            }
-        };
-
-        console.log('调用豆包API...');
-        
-        const response = await fetch(DOUBAO_API_URL, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${DOUBAO_API_KEY}`
-            },
-            body: JSON.stringify(requestBody)
-        });
-
-        if (!response.ok) {
-            const errorData = await response.text();
-            throw new Error(`豆包API调用失败: ${response.status} ${errorData}`);
-        }
-
-        const data = await response.json();
-        console.log('豆包API响应:', JSON.stringify(data, null, 2));
-
-        // 解析响应，获取图片URL
-        if (data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.tool_calls) {
-            const toolCall = data.choices[0].message.tool_calls[0];
-            const functionArgs = JSON.parse(toolCall.function.arguments);
-            
-            // 这里需要根据豆包API的实际响应格式调整
-            // 如果豆包返回的是图片URL
-            if (functionArgs.image_url) {
-                return {
-                    imageUrl: functionArgs.image_url,
-                    prompt: prompt
-                };
-            }
-        }
-
-        // 如果没有找到图片URL，抛出错误
-        throw new Error('豆包API未返回有效的图片URL');
-
-    } catch (error) {
-        console.error('豆包API调用错误:', error);
-        throw error;
-    }
-}
-
 // 使用豆包的直接图像生成API
 async function generateWithDoubaoDirect(prompt, image) {
     try {
-        // 根据示例代码调整请求参数
         const requestBody = {
             model: DOUBAO_MODEL,
             prompt: prompt,
@@ -201,7 +83,7 @@ async function generateWithDoubaoDirect(prompt, image) {
         // 如果有参考图片，可以添加相应参数
         if (image) {
             requestBody.image = image;
-            requestBody.image_strength = 0.8; // 参考图片的影响强度
+            requestBody.image_strength = 0.8;
         }
 
         console.log('调用豆包图像生成API:', DOUBAO_API_URL);
@@ -224,7 +106,6 @@ async function generateWithDoubaoDirect(prompt, image) {
         const data = await response.json();
         console.log('豆包API响应:', JSON.stringify(data, null, 2));
         
-        // 根据示例代码的响应格式获取图片URL
         if (data.data && data.data[0] && data.data[0].url) {
             return {
                 imageUrl: data.data[0].url,
@@ -249,15 +130,31 @@ app.get('/api/health', (req, res) => {
     });
 });
 
-// 获取生成历史（可选功能）
+// 获取生成历史
 app.get('/api/history', (req, res) => {
-    // 这里可以添加生成历史的存储和获取逻辑
     res.json({ history: [] });
 });
 
-// 根路由
+// 根路由 - 返回简单的HTML响应而不是文件
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+    res.send(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>AI手办生成器</title>
+            <meta charset="utf-8">
+        </head>
+        <body>
+            <h1>🎯 AI手办生成器</h1>
+            <p>服务器运行正常！</p>
+            <p>API端点：</p>
+            <ul>
+                <li><a href="/api/health">/api/health</a> - 健康检查</li>
+                <li>POST /api/generate - 生成手办图片</li>
+            </ul>
+        </body>
+        </html>
+    `);
 });
 
 // 错误处理中间件
@@ -269,22 +166,14 @@ app.use((error, req, res, next) => {
     });
 });
 
-// 启动服务器
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-    console.log(`🚀 服务器运行在端口 ${PORT}`);
-    console.log(`🌐 访问地址: http://localhost:${PORT}`);
-    console.log(`🔑 豆包API密钥: ${DOUBAO_API_KEY ? '已配置' : '未配置'}`);
-});
-
-// 优雅关闭
-process.on('SIGTERM', () => {
-    console.log('接收到 SIGTERM 信号，正在关闭服务器...');
-    process.exit(0);
-});
-
-process.on('SIGINT', () => {
-    console.log('接收到 SIGINT 信号，正在关闭服务器...');
-    process.exit(0);
-});
+// Vercel需要导出app而不是启动监听
 module.exports = app;
+
+// 如果不在Vercel环境中，启动本地服务器
+if (process.env.NODE_ENV !== 'production') {
+    const PORT = process.env.PORT || 3000;
+    app.listen(PORT, () => {
+        console.log(`🚀 本地服务器运行在端口 ${PORT}`);
+        console.log(`🔑 豆包API密钥: ${DOUBAO_API_KEY ? '已配置' : '未配置'}`);
+    });
+}
