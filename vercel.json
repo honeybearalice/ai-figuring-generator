@@ -2,7 +2,6 @@
 {
   "version": 2,
   "name": "ai-figurine-generator",
-  "description": "AI手办生成器 - 基于豆包API的智能手办创作平台",
   
   "builds": [
     {
