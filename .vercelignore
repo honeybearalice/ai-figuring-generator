@@ -1,2 +1,0 @@
-# 告诉Vercel不要将api目录作为单独的Serverless Functions处理
-api/
