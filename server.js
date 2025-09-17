@@ -3,6 +3,8 @@
 const express = require('express');
 const multer = require('multer');
 const path = require('path');
+// 导入axios用于API调用
+const axios = require('axios');
 // 移除 fs 模块，因为不需要文件操作
 require('dotenv').config();
 
@@ -36,6 +38,18 @@ const DOUBAO_API_URL = process.env.DOUBAO_API_URL || 'https://ark.cn-beijing.vol
 const DOUBAO_API_KEY = process.env.DOUBAO_API_KEY;
 const DOUBAO_MODEL = process.env.DOUBAO_MODEL || 'ep-20250917182847-vj4mj';
 
+// 统一处理非JSON响应的函数
+async function handleResponse(response) {
+    try {
+        // 尝试解析为JSON
+        return await response.json();
+    } catch (error) {
+        // 如果不是JSON，返回文本内容
+        const text = await response.text();
+        throw new Error(`API返回非JSON响应: ${text}`);
+    }
+}
+
 // 图片生成API路由
 app.post('/api/generate', async (req, res) => {
     try {
@@ -57,18 +71,6 @@ app.post('/api/generate', async (req, res) => {
             imageUrl: result.imageUrl,
             prompt: result.prompt
         });
-
-// 统一处理非JSON响应的函数
-async function handleResponse(response) {
-    try {
-        // 尝试解析为JSON
-        return await response.json();
-    } catch (error) {
-        // 如果不是JSON，返回文本内容
-        const text = await response.text();
-        throw new Error(`API返回非JSON响应: ${text}`);
-    }
-}
     } catch (error) {
         console.error('生成失败:', error);
         res.status(500).json({ 
@@ -105,28 +107,41 @@ async function generateWithDoubaoDirect(prompt, image) {
         console.log('调用豆包图像生成API:', DOUBAO_API_URL);
         console.log('请求参数:', JSON.stringify(requestBody, null, 2));
         
-        const response = await fetch(DOUBAO_API_URL, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${DOUBAO_API_KEY}`
-            },
-            body: JSON.stringify(requestBody)
-        });
-
-        if (!response.ok) {
-            const errorData = await response.text();
-            throw new Error(`API调用失败: ${response.status} ${errorData}`);
-        }
-
-        // 尝试解析JSON响应，但处理可能的非JSON情况
-        let data;
         try {
-            data = await response.json();
-        } catch (jsonError) {
-            const responseText = await response.text();
-            console.error('API返回非JSON响应:', responseText);
-            throw new Error(`API返回非JSON响应: ${responseText.substring(0, 200)}...`);
+            const response = await axios.post(DOUBAO_API_URL, requestBody, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${DOUBAO_API_KEY}`
+                },
+                responseType: 'json'
+            });
+
+            const data = response.data;
+            console.log('豆包API响应状态:', response.status);
+            
+            // 保持与原有代码的兼容性，返回符合预期格式的对象
+            if (data.data && data.data[0] && data.data[0].url) {
+                return {
+                    imageUrl: data.data[0].url,
+                    prompt: prompt
+                };
+            }
+            
+            throw new Error('API未返回有效的图片URL');
+        } catch (error) {
+            console.error('豆包API调用错误详情:', error);
+            if (error.response) {
+                // 服务器返回了错误状态码
+                const errorMsg = `API调用失败: ${error.response.status} ${JSON.stringify(error.response.data)}`;
+                console.error(errorMsg);
+                throw new Error(errorMsg);
+            } else if (error.request) {
+                // 请求已发送但没有收到响应
+                throw new Error(`网络错误: 无法连接到豆包API服务器`);
+            } else {
+                // 其他错误
+                throw new Error(`请求配置错误: ${error.message}`);
+            }
         }
 
         console.log('豆包API响应:', JSON.stringify(data, null, 2));
