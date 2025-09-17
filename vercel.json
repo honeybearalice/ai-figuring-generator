@@ -3,31 +3,21 @@
   "builds": [
     {
       "src": "server.js",
-      "use": "@vercel/node",
-      "config": {
-        "maxLambdaSize": "50mb"
-      }
-    },
-    {
-      "src": "public/**",
-      "use": "@vercel/static"
+      "use": "@vercel/node"
     }
   ],
-  "rewrites": [
+  "routes": [
     {
-      "source": "/api/(.*)",
-      "destination": "server.js"
+      "src": "/api/(.*)",
+      "dest": "/server.js"
     },
     {
-      "source": "/health",
-      "destination": "server.js"
-    }
-  ],
-  "redirects": [
+      "src": "/health",
+      "dest": "/server.js"
+    },
     {
-      "source": "/home",
-      "destination": "/",
-      "permanent": true
+      "src": "/(.*)",
+      "dest": "/server.js"
     }
   ]
 }
