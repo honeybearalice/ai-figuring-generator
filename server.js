@@ -58,6 +58,17 @@ app.post('/api/generate', async (req, res) => {
             prompt: result.prompt
         });
 
+// 统一处理非JSON响应的函数
+async function handleResponse(response) {
+    try {
+        // 尝试解析为JSON
+        return await response.json();
+    } catch (error) {
+        // 如果不是JSON，返回文本内容
+        const text = await response.text();
+        throw new Error(`API返回非JSON响应: ${text}`);
+    }
+}
     } catch (error) {
         console.error('生成失败:', error);
         res.status(500).json({ 
@@ -70,6 +81,11 @@ app.post('/api/generate', async (req, res) => {
 // 使用豆包的直接图像生成API
 async function generateWithDoubaoDirect(prompt, image) {
     try {
+        // 检查API密钥是否配置
+        if (!DOUBAO_API_KEY) {
+            throw new Error('豆包API密钥未配置');
+        }
+
         const requestBody = {
             model: DOUBAO_MODEL,
             prompt: prompt,
@@ -103,7 +119,16 @@ async function generateWithDoubaoDirect(prompt, image) {
             throw new Error(`API调用失败: ${response.status} ${errorData}`);
         }
 
-        const data = await response.json();
+        // 尝试解析JSON响应，但处理可能的非JSON情况
+        let data;
+        try {
+            data = await response.json();
+        } catch (jsonError) {
+            const responseText = await response.text();
+            console.error('API返回非JSON响应:', responseText);
+            throw new Error(`API返回非JSON响应: ${responseText.substring(0, 200)}...`);
+        }
+
         console.log('豆包API响应:', JSON.stringify(data, null, 2));
         
         if (data.data && data.data[0] && data.data[0].url) {
