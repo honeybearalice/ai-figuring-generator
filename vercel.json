@@ -42,12 +42,6 @@
     "UPLOAD_DIR": "uploads"
   },
   
-  "functions": {
-    "server.js": {
-      "maxDuration": 30
-    }
-  },
-  
   "headers": [
     {
       "source": "/api/(.*)",
