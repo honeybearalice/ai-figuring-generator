@@ -5,7 +5,6 @@ const multer = require('multer');
 const path = require('path');
 // 导入axios用于API调用
 const axios = require('axios');
-// 移除 fs 模块，因为不需要文件操作
 require('dotenv').config();
 
 const app = express();
@@ -27,28 +26,10 @@ app.use((req, res, next) => {
     }
 });
 
-// ❌ 移除文件系统操作 - Vercel不支持
-// const uploadDir = 'uploads';
-// if (!fs.existsSync(uploadDir)) {
-//     fs.mkdirSync(uploadDir);
-// }
-
 // 豆包API配置
 const DOUBAO_API_URL = process.env.DOUBAO_API_URL || 'https://ark.cn-beijing.volces.com/api/v3/images/generations';
 const DOUBAO_API_KEY = process.env.DOUBAO_API_KEY;
 const DOUBAO_MODEL = process.env.DOUBAO_MODEL || 'ep-20250917182847-vj4mj';
-
-// 统一处理非JSON响应的函数
-async function handleResponse(response) {
-    try {
-        // 尝试解析为JSON
-        return await response.json();
-    } catch (error) {
-        // 如果不是JSON，返回文本内容
-        const text = await response.text();
-        throw new Error(`API返回非JSON响应: ${text}`);
-    }
-}
 
 // 图片生成API路由
 app.post('/api/generate', async (req, res) => {
@@ -73,9 +54,9 @@ app.post('/api/generate', async (req, res) => {
         });
     } catch (error) {
         console.error('生成失败:', error);
-        res.status(500).json({ 
-            success: false, 
-            error: `生成失败: ${error.message}` 
+        res.status(500).json({
+            success: false,
+            error: `生成失败: ${error.message}`
         });
     }
 });
@@ -118,6 +99,7 @@ async function generateWithDoubaoDirect(prompt, image) {
 
             const data = response.data;
             console.log('豆包API响应状态:', response.status);
+            console.log('豆包API响应:', JSON.stringify(data, null, 2));
             
             // 保持与原有代码的兼容性，返回符合预期格式的对象
             if (data.data && data.data[0] && data.data[0].url) {
@@ -143,18 +125,6 @@ async function generateWithDoubaoDirect(prompt, image) {
                 throw new Error(`请求配置错误: ${error.message}`);
             }
         }
-
-        console.log('豆包API响应:', JSON.stringify(data, null, 2));
-        
-        if (data.data && data.data[0] && data.data[0].url) {
-            return {
-                imageUrl: data.data[0].url,
-                prompt: prompt
-            };
-        }
-
-        throw new Error('API未返回有效的图片URL');
-
     } catch (error) {
         console.error('豆包直接API调用错误:', error);
         throw error;
@@ -198,22 +168,30 @@ app.get('/', (req, res) => {
 });
 
 // 错误处理中间件
-app.use((error, req, res, next) => {
-    console.error('服务器错误:', error);
-    res.status(500).json({ 
-        error: '服务器内部错误',
-        message: error.message 
+app.use((err, req, res, next) => {
+    console.error('服务器错误:', err.stack);
+    res.status(500).json({
+        success: false,
+        error: `服务器内部错误: ${err.message}`
     });
 });
 
-// Vercel需要导出app而不是启动监听
-module.exports = app;
+// 404处理
+app.use((req, res) => {
+    res.status(404).json({
+        success: false,
+        error: '请求的资源不存在'
+    });
+});
 
-// 如果不在Vercel环境中，启动本地服务器
+// 启动服务器（仅在本地运行时，Vercel会自动检测和运行）
 if (process.env.NODE_ENV !== 'production') {
     const PORT = process.env.PORT || 3000;
     app.listen(PORT, () => {
-        console.log(`🚀 本地服务器运行在端口 ${PORT}`);
-        console.log(`🔑 豆包API密钥: ${DOUBAO_API_KEY ? '已配置' : '未配置'}`);
+        console.log(`本地开发服务器运行在 http://localhost:${PORT}`);
+        console.log(`豆包API配置: ${DOUBAO_API_KEY ? '已配置' : '未配置'}`);
     });
 }
+
+// 导出Express应用（用于Vercel）
+module.exports = app;
