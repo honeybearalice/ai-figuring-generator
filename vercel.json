@@ -1,8 +1,6 @@
 
 {
   "version": 2,
-  "name": "ai-figurine-generator",
-  
   "builds": [
     {
       "src": "server.js",
@@ -16,72 +14,16 @@
       "use": "@vercel/static"
     }
   ],
-  
-  "routes": [
-    {
-      "src": "/api/(.*)",
-      "dest": "server.js"
-    },
-    {
-      "src": "/health",
-      "dest": "server.js"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "public/$1"
-    }
-  ],
-  
-  "env": {
-    "DOUBAO_API_KEY": "@doubao_api_key",
-    "DOUBAO_MODEL": "@doubao_model",
-    "DOUBAO_API_URL": "@doubao_api_url",
-    "NODE_ENV": "production",
-    "MAX_FILE_SIZE": "50",
-    "UPLOAD_DIR": "uploads"
-  },
-  
-  "headers": [
+  "rewrites": [
     {
       "source": "/api/(.*)",
-      "headers": [
-        {
-          "key": "Access-Control-Allow-Origin",
-          "value": "*"
-        },
-        {
-          "key": "Access-Control-Allow-Methods",
-          "value": "GET, POST, PUT, DELETE, OPTIONS"
-        },
-        {
-          "key": "Access-Control-Allow-Headers",
-          "value": "Content-Type, Authorization"
-        },
-        {
-          "key": "Cache-Control",
-          "value": "no-cache"
-        }
-      ]
+      "destination": "server.js"
     },
     {
-      "source": "/(.*)",
-      "headers": [
-        {
-          "key": "X-Content-Type-Options",
-          "value": "nosniff"
-        },
-        {
-          "key": "X-Frame-Options",
-          "value": "DENY"
-        },
-        {
-          "key": "X-XSS-Protection",
-          "value": "1; mode=block"
-        }
-      ]
+      "source": "/health",
+      "destination": "server.js"
     }
   ],
-  
   "redirects": [
     {
       "source": "/home",
@@ -89,11 +31,12 @@
       "permanent": true
     }
   ],
-  
-  "rewrites": [
-    {
-      "source": "/api/generate",
-      "destination": "/api/generate"
-    }
-  ]
+  "env": {
+    "DOUBAO_API_KEY": "@doubao_api_key",
+    "DOUBAO_MODEL": "@doubao_model",
+    "DOUBAO_API_URL": "@doubao_api_url",
+    "NODE_ENV": "production",
+    "MAX_FILE_SIZE": "50",
+    "UPLOAD_DIR": "uploads"
+  }
 }
