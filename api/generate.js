@@ -23,7 +23,7 @@ export default async function handler(req, res) {
     const { prompt, image } = req.body;
 
     const response = await openai.images.generate({
-      model: "ep-20241218213056-lmm9k",
+      model: "ep-20250917182847-vj4mj",
       prompt: prompt,
       n: 1,
       size: "1024x1024"
