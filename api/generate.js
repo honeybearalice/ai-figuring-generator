@@ -1,7 +1,7 @@
 import OpenAI from 'openai';
 
 const openai = new OpenAI({
-  baseURL: 'https://ark.cn-beijing.volces.com/api/v3',
+  baseURL: 'https://ark.cn-beijing.volces.com/api/v3/images/generations',
   apiKey: process.env.ARK_API_KEY,
 });
 
