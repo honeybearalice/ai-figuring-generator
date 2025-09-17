@@ -1,34 +1,24 @@
 {
-  "name": "ai-figurine-generator",
+  "name": "ai-figuring-generator",
   "version": "1.0.0",
   "description": "AI手办生成器 - 集成豆包API",
-  "main": "server.js",
+  "main": "api/generate.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "nodemon server.js",
-    "build": "echo 'Build completed'",
-    "test": "echo 'No tests specified'"
+    "start": "node api/generate.js"
   },
   "keywords": [
     "ai",
-    "figurine", 
+    "figurine",
     "generator",
     "doubao",
     "image-generation"
   ],
-  "author": "Your Name",
+  "author": "honeybearalice",
   "license": "MIT",
   "dependencies": {
-    "express": "^4.18.2",
-    "multer": "^1.4.4-lts.1", 
-    "dotenv": "^16.3.1",
-    "cors": "^2.8.5",
-    "axios": "^1.6.0"
-  },
-  "devDependencies": {
-    "nodemon": "^3.0.1"
+    "openai": "^4.0.0"
   },
   "engines": {
-    "node": ">=14.0.0"
+    "node": ">=18.0.0"
   }
 }
